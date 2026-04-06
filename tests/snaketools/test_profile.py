@@ -4,7 +4,9 @@ from unittest.mock import patch
 import pytest
 
 from sequana_pipetools.snaketools.profile import (
+    _build_local_config_v7,
     _build_local_config_v8,
+    _build_slurm_config_v7,
     _build_slurm_config_v8,
     _create_profile_v7,
     _create_profile_v8,
@@ -97,6 +99,27 @@ def test_write_yaml(tmp_path):
     assert "42" in content
 
 
+# ── v7 config builders ────────────────────────────────────────────────────────
+
+
+def test_build_local_config_v7_uses_singularity_key():
+    """All v7.x: should always output use-singularity key."""
+    config = _build_local_config_v7(**_base_kwargs())
+    assert "use-singularity" in config
+    assert "use-apptainer" not in config
+    assert "singularity-args" in config
+    assert "singularity-prefix" in config
+
+
+def test_build_slurm_config_v7_uses_singularity_key():
+    """All v7.x: should always output use-singularity key in slurm profile."""
+    kwargs = _base_kwargs()
+    kwargs.update({"partition": "common", "qos": "normal", "memory": "4G"})
+    config = _build_slurm_config_v7(**kwargs)
+    assert "use-singularity" in config
+    assert "use-apptainer" not in config
+
+
 # ── v7 profile creation ───────────────────────────────────────────────────────
 
 
@@ -115,6 +138,11 @@ def test_create_profile_v7_slurm(tmp_path):
     result = _create_profile_v7(tmp_path, "slurm", **kwargs)
     assert result == ".sequana/profile_slurm"
     assert (tmp_path / ".sequana" / "profile_slurm" / "config.yaml").exists()
+
+
+def test_create_profile_v7_unsupported_profile(tmp_path):
+    with pytest.raises(ValueError, match="Unsupported profile"):
+        _create_profile_v7(tmp_path, "sge", **_base_kwargs())
 
 
 # ── v8 profile creation ───────────────────────────────────────────────────────

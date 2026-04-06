@@ -57,7 +57,7 @@ def get_shell(tool_path: str, version: str) -> str:
             f"Shell command version '{version}' not found: '{module_path}'.\n"
             f"Available versions are the subdirectories under "
             f"sequana_wrappers/shells/{'/'.join(parts)}/.\n"
-            f"Use version='dev' for the development version."
+            "Use version='dev' for the development version."
         )
 
 
@@ -85,7 +85,7 @@ def get_run(tool_path: str, version: str):
             f"Snippet version '{version}' not found: '{module_path}'.\n"
             f"Available versions are the subdirectories under "
             f"sequana_wrappers/snippets/{'/'.join(parts)}/.\n"
-            f"Use version='dev' for the development version."
+            "Use version='dev' for the development version."
         )
 
 
@@ -500,9 +500,9 @@ class PipelineManager(PipelineManagerBase):
             self.error("The PipelineManager expect the field 'input_pattern' to be in your config file")
 
         # uses the provided sequana_wrappers version if any, otherwise use the main branch of the wrappers
-        if "sequana_wrappers" not in cfg.config:
+        if "sequana_wrappers" in cfg.config:
             logger.warning(
-                "This pipeline has no sequana_wrappers in its config file. Using the branch 'main' by default"
+                "The sequana_wrappers parameter in the config file is deprecated and will be removed in a future version"
             )
         self.wrappers = cfg.config.get("sequana_wrappers", "main")
 
@@ -543,7 +543,7 @@ class PipelineManager(PipelineManagerBase):
             if self.paired:
                 logger.info("Paired data found")
         else:
-            logger.info(f"Using FileFactory (no readtag)")
+            logger.info("Using FileFactory (no readtag)")
             self._get_any_files(glob_dir)
             logger.info(f"Found {len(self.samples)} samples")
 
