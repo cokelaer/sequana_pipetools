@@ -1,12 +1,12 @@
 """Setting up Snakemake profiles.
 
-Supports both snakemake v7 (template-based) and v8+ (programmatic, plugin-based).
+Supports snakemake version ranges:
+- snakemake < 8 : YAML profile with ``use-singularity`` / ``singularity-args`` /
+  ``singularity-prefix`` keys (the only valid option names for all v7.x)
+- snakemake >= 8: programmatic config with executor plugins and
+  ``software-deployment-method: [apptainer]``
 """
 
-try:
-    import importlib.resources as resources
-except ImportError:  # pragma: no cover
-    import importlib_resources as resources
 
 from pathlib import Path
 
@@ -35,21 +35,74 @@ def _is_v8():
 # ---------------------------------------------------------------------------
 
 
+def _build_local_config_v7(**kwargs) -> dict:
+    """Build a snakemake v7 local profile config dict.
+
+    All v7.x versions use ``use-singularity`` / ``singularity-args`` /
+    ``singularity-prefix``; the ``use-apptainer`` key is v8-only.
+    """
+    config = {
+        "keep-going": bool(kwargs.get("keep_going", False)),
+        "printshellcmds": True,
+        "cores": kwargs["jobs"],
+        "wrapper-prefix": kwargs["wrappers"],
+        "use-singularity": bool(kwargs.get("use_apptainer", False)),
+        "singularity-args": kwargs.get("apptainer_args", ""),
+        "singularity-prefix": str(kwargs.get("apptainer_prefix", "")),
+        "forceall": bool(kwargs.get("forceall", False)),
+    }
+    return config
+
+
+def _build_slurm_config_v7(**kwargs) -> dict:
+    """Build a snakemake v7 slurm profile config dict.
+
+    All v7.x versions use ``use-singularity`` / ``singularity-args`` /
+    ``singularity-prefix``; the ``use-apptainer`` key is v8-only.
+    """
+    submit_cmd = (
+        "mkdir -p logs/{rule} && "
+        "sbatch "
+        "--partition={resources.partition} "
+        "--qos={resources.qos} "
+        "--cpus-per-task={threads} "
+        "--mem={resources.mem} "
+        "--job-name=smk-{rule}-{wildcards} "
+        "--output=logs/{rule}/{rule}-{wildcards}-slurm-%j.out "
+        '$(bash -c \'[[ ! -z "{resources.gres}" ]] && echo "--gres={resources.gres}"\')'
+    )
+    config = {
+        "cluster": submit_cmd,
+        "default-resources": [
+            f"partition={kwargs['partition']}",
+            f"qos={kwargs['qos']}",
+            f"mem={kwargs['memory']}",
+            "gres=''",
+        ],
+        "keep-going": bool(kwargs.get("keep_going", False)),
+        "printshellcmds": True,
+        "jobs": kwargs["jobs"],
+        "wrapper-prefix": kwargs["wrappers"],
+        "use-singularity": bool(kwargs.get("use_apptainer", False)),
+        "singularity-args": kwargs.get("apptainer_args", ""),
+        "singularity-prefix": str(kwargs.get("apptainer_prefix", "")),
+        "forceall": bool(kwargs.get("forceall", False)),
+    }
+    return config
+
+
 def _create_profile_v7(workdir: Path, profile: str, **kwargs) -> str:
-    """Create profile config using the legacy YAML template (snakemake < 8)."""
-    try:
-        profile_file = resources.files("sequana_pipetools.resources").joinpath(f"{profile}.yaml")
-        with open(profile_file, "r") as fin:
-            profile_text = fin.read()
-            profile_text = profile_text.format(**kwargs)
-    except AttributeError:  # pragma: no cover
-        # python 3.8 back-compat
-        with resources.path("sequana_pipetools.resources", f"{profile}.yaml") as profile_file:
-            profile_text = profile_file.read_text().format(**kwargs)
+    """Create profile config programmatically for snakemake < 8."""
+    if profile == "local":
+        config = _build_local_config_v7(**kwargs)
+    elif profile == "slurm":
+        config = _build_slurm_config_v7(**kwargs)
+    else:  # pragma: no cover
+        raise ValueError(f"Unsupported profile '{profile}' for snakemake v7. Use 'local' or 'slurm'.")
 
     outfile = workdir / f".sequana/profile_{profile}" / "config.yaml"
     outfile.parent.mkdir(parents=True, exist_ok=True)
-    outfile.write_text(profile_text)
+    _write_yaml(outfile, config)
     return f".sequana/profile_{profile}"
 
 
@@ -149,9 +202,10 @@ def create_profile(workdir: Path, profile: str, **kwargs) -> str:
 
     Automatically selects the correct format for the installed snakemake
     version:
-    - snakemake < 8 : YAML template with legacy flags (use-singularity, etc.)
-    - snakemake >= 8: programmatic config with executor plugins and renamed
-      apptainer flags (software-deployment-method, apptainer-args, etc.)
+    - snakemake < 7.8 : programmatic config with ``use-singularity`` key
+    - snakemake >= 7.8: programmatic config with ``use-apptainer`` key
+    - snakemake >= 8  : programmatic config with executor plugins and
+      ``software-deployment-method: [apptainer]``
 
     Returns the relative path of the profile directory.
     """

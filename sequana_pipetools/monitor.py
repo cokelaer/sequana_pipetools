@@ -501,7 +501,7 @@ def _build_display(
     if version:
         hdr.append(f" v{version}", style="dim cyan")
     hdr.append("\n ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-    hdr.append(f"\n 📊 Overall Progress  ")
+    hdr.append("\n 📊 Overall Progress  ")
     hdr.append(f"{pct:>3d}% ", style="bold yellow")
     hdr.append(bar_str, style="green")
     hdr.append(f"  {display_done}/{total_expected} jobs\n")
@@ -614,7 +614,7 @@ def _build_display(
     failed_style = "bold red" if total_failed else None
     ftr.append(f"  │  Failed: {total_failed}", style=failed_style)
     ftr.append(f"\n 📂 Working dir: {os.getcwd()}")
-    ftr.append(f"\n 📋 Logs: logs/  │  Snakemake log: .sequana/snakemake.log")
+    ftr.append("\n 📋 Logs: logs/  │  Snakemake log: .sequana/snakemake.log")
     ftr.append("\n")
 
     return Group(hdr, tbl, ftr)
@@ -752,7 +752,7 @@ def run_monitor(
         from rich.panel import Panel
 
         console.print(
-            f"\n[bold green]✅ Pipeline completed successfully.[/bold green] "
+            "\n[bold green]✅ Pipeline completed successfully.[/bold green] "
             f"{total_done} jobs in {_elapsed_str(elapsed)}."
         )
         console.print(Panel(CITATION_MESSAGE, title="Citation", border_style="bold cyan", padding=(1, 2)))

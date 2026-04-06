@@ -23,7 +23,7 @@ logger = colorlog.getLogger(__name__)
 
 
 def _md5(fname, chunk=65536):
-    hash_md5 = hashlib.md5()
+    hash_md5 = hashlib.md5(usedforsecurity=False)
     with open(fname, "rb") as f:
         for block in iter(lambda: f.read(chunk), b""):
             hash_md5.update(block)

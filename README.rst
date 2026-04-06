@@ -335,6 +335,7 @@ Changelog :memo:
 ========= ======================================================================
 Version   Description
 ========= ======================================================================
+1.5.4     * Supports both snakemake v7 and v8 for the profile files
 1.5.3     * Add Rich-styled Sequana tips panel on pipeline failure (onerror)
           * Add Rich-styled Citation panel on pipeline success (teardown)
           * Add onsuccess() method with Rich panel linking to summary.html

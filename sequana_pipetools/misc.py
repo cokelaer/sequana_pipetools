@@ -11,7 +11,6 @@
 #  Contributors:  https://github.com/sequana/sequana/graphs/contributors
 ##############################################################################
 import hashlib
-import json
 import os
 import sys
 import tarfile
@@ -229,7 +228,7 @@ def print_version(name):
         version = get_package_version("sequana")
         print(f"Sequana version: {version}")
     except Exception:  # pragma: no cover
-        print(f"Sequana version: not found")
+        print("Sequana version: not found")
 
     try:
         version = get_package_version("sequana_pipetools")

@@ -63,7 +63,7 @@ class Wrapper:
         else:
             logger.info(f"Updating sequana-wrappers into {self.repo_path}")
             self.repo_path.parent.mkdir(parents=True, exist_ok=True)
-            result = subprocess.run(["git", "pull"], cwd=self.repo_path, capture_output=True, text=True)
+            result = subprocess.run(["git", "pull"], cwd=self.repo_path, capture_output=True, text=True)  # nosec
             logger.debug(result.stdout)
             logger.debug(result.stderr)
 
@@ -169,7 +169,7 @@ class SequanaManager:
         lines = [
             f"[bold cyan]Pipeline:[/bold cyan] sequana_{self.name}  (v{self._get_package_version()})",
             f"[bold cyan]Docs:    [/bold cyan] https://github.com/sequana/{self.name}",
-            f"[bold cyan]Website: [/bold cyan] https://sequana.readthedocs.io",
+            "[bold cyan]Website: [/bold cyan] https://sequana.readthedocs.io",
         ]
         Console().print(Panel("\n".join(lines), title="Welcome to Sequana", border_style="bold blue", padding=(1, 2)))
 
@@ -343,11 +343,8 @@ class SequanaManager:
             # We also add the -e to make sure a clean environment is used. This will avoid
             # unwanted side effect. We also appdn any user apptainer arguments.
             home = str(Path.home())
-            # v7 YAML template needs the value quoted; v8 programmatic YAML does not
-            if _is_v8():
-                options["apptainer_args"] = f"-e -B {home} {self.options.apptainer_args}".strip()
-            else:
-                options["apptainer_args"] = f" ' -e -B {home} {self.options.apptainer_args}'"
+            # Both v7 and v8 use programmatic YAML (ruamel.yaml handles quoting)
+            options["apptainer_args"] = f"-e -B {home} {self.options.apptainer_args}".strip()
         else:
             options["apptainer_prefix"] = ""
             options["apptainer_args"] = ""
@@ -371,8 +368,8 @@ class SequanaManager:
         if use_monitor:
             pipeline_version = self._get_package_version()
             command = (
-                f"#!/bin/bash\n"
-                f"sequana_pipetools_monitor"
+                "#!/bin/bash\n"
+                "sequana_pipetools_monitor"
                 f" --snakefile {snakefilename}"
                 f" --profile {profile_dir}"
                 f" --name {self.name}"
@@ -380,9 +377,9 @@ class SequanaManager:
             )
         else:
             command = (
-                f"#!/bin/bash\nset -o pipefail\n"
+                "#!/bin/bash\nset -o pipefail\n"
                 f"snakemake -s {snakefilename} --profile {profile_dir}"
-                f" 2>&1 | tee .sequana/snakemake.log"
+                " 2>&1 | tee .sequana/snakemake.log"
             )
 
         command_file.write_text(command)
@@ -523,7 +520,7 @@ class SequanaManager:
                         logger.info(msg)
 
         else:
-            logger.info(f"Note that completion is possible with sequana_pipetools --completion{self.name}")
+            logger.info(f"Note that completion is possible with sequana_pipetools --completion {self.name}")
 
         if getattr(self.options, "execute", False):
             self.run()
@@ -541,7 +538,7 @@ class SequanaManager:
             cmd = ["bash", script]
 
         logger.info(f"Launching pipeline: {' '.join(cmd)} (in {self.workdir})")
-        subprocess.run(cmd, cwd=self.workdir)
+        subprocess.run(cmd, cwd=self.workdir)  # nosec
 
     def _get_section_content(self, filename, section_name):
         """searching for a given section (e.g. container)
@@ -664,11 +661,12 @@ class SequanaManager:
                 "Keep going but your pipeline will probably not be fully executable since images could not be downloaded"
             )
 
-        total_size = sum(
-            f.stat().st_size for f in Path(self.apptainer_prefix).iterdir() if f.is_file() and not f.is_symlink()
-        )
-        total_size = round(total_size / 1024 / 1024)
-        logger.info(f"Total container size (Mb): {total_size}")
+        total_size = sum(Path(f).stat().st_size for f in all_outfiles if Path(f).is_file())
+        total_size_mb = round(total_size / 1024 / 1024)
+        if total_size_mb >= 1000:
+            logger.info(f"Total container size: {total_size_mb / 1024:.1f} Gb")
+        else:
+            logger.info(f"Total container size: {total_size_mb} Mb")
 
 
 def multiple_downloads(files_to_download, timeout=3600):
